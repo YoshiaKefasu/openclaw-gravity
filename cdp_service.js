@@ -547,6 +547,44 @@ export class CDPService {
 		return null
 	}
 
+	async waitForCompletion(timeoutMs = 600000) {
+		const cdp = await this.ensureCDP()
+		if (!cdp) return { status: "error", message: "CDP not connected" }
+
+		const startTime = Date.now()
+		let stableCount = 0
+
+		// 最初はUIスレッドが生成を開始するまで若干待機する
+		await new Promise((r) => setTimeout(r, 2000))
+
+		while (Date.now() - startTime < timeoutMs) {
+			try {
+				const approval = await this.checkApprovalRequired()
+				if (approval && approval.required) {
+					return { status: "approval_required", message: approval.message }
+				}
+
+				const generating = await this.checkIsGenerating()
+				if (!generating) {
+					stableCount++
+					// 3回連続(約1.5秒)非生成状態なら完了とみなす
+					if (stableCount >= 3) {
+						const response = await this.getLastResponse()
+						return { status: "completed", response: response ? response.text : null }
+					}
+				} else {
+					stableCount = 0
+				}
+			} catch (e) {
+				// ループ中の例外は無視して続行
+			}
+
+			await new Promise((r) => setTimeout(r, 500))
+		}
+
+		return { status: "timeout", message: "Timeout waiting for completion" }
+	}
+
 	async getScreenshot() {
 		const cdp = await this.ensureCDP()
 		if (!cdp) return null
