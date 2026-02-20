@@ -1,162 +1,64 @@
-<div align="center">
+# Antigravity Remote
+**Discord Bot & MCP Server for Antigravity (VS Code Fork / Cascade AI)**
 
-![Header Image](header.jpg)
+Antigravity REPL / AI エージェント（Cascade）を外部から遠隔操作・監視するための統合ツールです。
+このリポジトリには、Discord から Antigravity を操作するための **Bot サーバー** と、OpenClaw Agent 等から直接機能を呼び出すための **MCP サーバー** の両方が含まれています。
 
-# Antigravity Discord Bot
-
-
-<img src="https://img.shields.io/badge/Node.js-18.x+-43853D?style=for-the-badge&logo=nodedotjs&logoColor=white" alt="Node.js" />
-<img src="https://img.shields.io/badge/Discord.js-14.x-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord.js" />
-<img src="https://img.shields.io/badge/WebSocket-WS-000000?style=for-the-badge" alt="WebSocket" />
-<img src="https://img.shields.io/badge/Chokidar-5.x-blue?style=for-the-badge" alt="Chokidar" />
-
-</div>
-
-このツールはAntigravity (VS Code Fork) を Discord から操作するためのボットです。
-Chrome DevTools Protocol (CDP) を使用して Antigravity の内部状態にアクセスし、メッセージの送信や操作の自動化を行います。
-> ※ 本ツールは公式のAntigravityとは無関係の非公式ツールです。
-
-> [!CAUTION]
-> **【重要】セキュリティに関する警告 / Security Warning**
-> 
-> このソフトウェアは **「開発者向けの実験的ツール (Proof of Concept)」** です。
-> 仕組み上、**あなたのPCを外部（Discord）から遠隔操作するバックドア** として機能します。
-> 
-> - **リスク**: 設定 (`DISCORD_ALLOWED_USER_ID`) を誤ったり、Botトークンが漏洩した場合、**PC内のファイルを削除されたり、悪意のあるコマンドを実行されたりする** 危険性があります。
-> - **免責事項**: このソフトウェアを使用した結果生じた損害（データの損失、PCの不具合、セキュリティ被害など）について、作者は一切の責任を負いません。**セキュリティリスクを十分に理解した上で、自己責任で使用してください。**
-> - **非推奨**: セキュリティの知識がない一般ユーザーへの配布や、不特定多数が閲覧できる場所へのトークン公開は絶対に行わないでください。
-
-
-## ⚠️ セキュリティについて (必読)
-
-このBotは、あなたのPC上で動作しているAIエージェントをDiscordから操作可能にします。AIエージェントは「ファイルの読み書き」や「コマンド実行」の権限を持っているため、**Botの操作権限を奪われることは、PCの乗っ取りと同義です。**
-
-**安全に使うための絶対ルール:**
-1.  **`.env` ファイルを絶対に公開しない**: `DISCORD_BOT_TOKEN` はパスワードと同じです。
-2.  **`DISCORD_ALLOWED_USER_ID` を正しく設定する**: 許可するユーザーIDを自分だけに限定してください。この設定を空にしたり、間違えたりしないでください（v1.1以降、未設定では起動しません）。
-3.  **信頼できるネットワークで使用する**: 公衆無線LANなど、盗聴の危険がある場所での使用は避けてください。
-4.  **独立した環境で使用する**: 万が一の事故に備え、普段使いのメインPCではなく、**個人情報が含まれていない（または初期化しても問題ない）独立したPCや仮想環境** での利用を強く推奨します。
-
-## おすすめの導入方法
-
-antigravityのAIチャットに以下のプロンプトを入力してください。
-「https://github.com/harunamitrader/antigravity-discord-bot を導入して。可能な範囲でAI側で作業を行い、必要な情報があれば質問して。手動で行う必要があるものは丁寧にやり方を教えて。」
-
-導入が完了したら、
-「デバッグモード用ショートカットとantigravity-discord-botの起動用ショートカットをデスクトップに作成して」
-も必要に応じてプロンプトを送信しても良いかもしれません。
-
-導入方法でわからないことやエラーがあれば都度antigravityのAIチャットで質問すればどうにか導入できるはずです。
-それと、許可ボタン周りの機能が不十分なので、拡張機能の　Antigravity Auto Accept　を入れて、AUTO　ACCEPTをONにしたほうが良い。
+---
 
 ## 🚀 主な機能
 
-1.  **テキスト生成**: DiscordメッセージをそのままAntigravityに転送し、生成を開始します。
-2.  **ファイル添付**: 画像やテキストファイルを添付してAntigravityに送信できます。
-3.  **モデル切替**: `/model` コマンドでAIモデルを切り替えられます。
-4.  **モード切替**: `/mode` コマンドでPlanning/Fastモードを切り替えられます。
-5.  **スクリーンショット**: `/screenshot` コマンドで現在の画面を取得できます。
-6.  **生成停止**: `/stop` コマンドで生成を中断できます。
-7.  **新規チャット**: `/newchat` コマンドで新しい会話を開始できます。
-8.  **ファイル監視**: プロジェクトディレクトリ内のファイル変更を検知し、Discordに通知します。
+### 1. MCP サーバー (`server_mcp.js`)
+LAN内で `OpenClawAgent` などの MCP クライアントから直接 Antigravity を操作・監視します。
+- URL: `http://localhost:3000/sse` (ポートは `.env` の `MCP_PORT` で変更可能)
+- サポートするツール:
+  - **メッセージ・ファイル送信**: `ag_send_message` (テキストに加え、画像や軽量ファイルを `attachments` として直接注入可能)
+  - **状態監視**: `ag_get_status` (モデル状態), `ag_get_last_response` (直近の応答内容)
+  - **承認の自動化**: `ag_check_approval_required`, `ag_click_approval` (コマンド実行やファイル変更等の確認ダイアログの検知とクリック)
+  - **制御**: `ag_switch_model`, `ag_switch_mode`, `ag_new_chat`, `ag_stop_generation`
+  - **視覚確認**: `ag_screenshot` (AntigravityのUI全体をキャプチャ)
 
-## 🛠️ 事前準備 (Discord Botの作成)
+### 2. Discord ボット (`server_discord.js`)
+Discord チャンネルを介して人間が Antigravity に指示を出したり、AIの出力をモニタリングできます。
+- **ファイル添付**: Discordに画像を貼り付けると自動でダウンロード＆添付されます。
+- **通知自動化**: 生成中ステータス、AIからの応答、ファイルの作成・更新・削除を自動通知。
+- **操作コマンド**: `/model`, `/mode`, `/screenshot`, `/stop`, `/newchat` などを備えています。
 
-### 1. Discord Botの作成とトークン取得
-1. [Discord Developer Portal](https://discord.com/developers/applications) にアクセスし、ログインします。
-2. 右上の **"New Application"** をクリックし、名前（例: `AntigravityBot`）を入力して作成します。
-3. 左メニューの **"Bot"** を選択し、**"Reset Token"** をクリックしてトークンを生成・コピーします。
-   - ※このトークンが `.env` の `DISCORD_BOT_TOKEN` になります。
-4. 同ページ（Botタブ）の下部にある **"Privileged Gateway Intents"** セクションで、以下を **ON** にします。
-   - **PRESENCE INTENT**
-   - **SERVER MEMBERS INTENT**
-   - **MESSAGE CONTENT INTENT** (重要: これがないとメッセージを読み取れません)
-5. 設定を変更したら必ず **Warning: Save Changes** ボタンで保存してください。
+---
 
-### 2. Botをサーバーに招待
-1. 左メニューの **"OAuth2"** -> **"URL Generator"** を選択します。
-2. **SCOPES** で `bot` にチェックを入れます。
-3. **BOT PERMISSIONS** で以下にチェックを入れます（最低限必要な権限）。
-   - Read Messages/View Channels
-   - Send Messages
-   - Send Messages in Threads
-   - Embed Links
-   - Attach Files
-   - Read Message History
-4. 生成されたURLをコピーし、ブラウザで開いてBotを自分のサーバーに追加します。
+## 🛠️ 事前準備 \& インストール
 
-### 3. DiscordユーザーIDの取得
-1. Discordアプリの **「ユーザー設定」** (歯車アイコン) -> **「詳細設定」** を開きます。
-2. **「開発者モード」** をオンにします。
-3. 自分のユーザーアイコンまたは名前を右クリックし、**「ユーザーIDをコピー」** を選択します。
-   - ※このIDが `.env` の `DISCORD_ALLOWED_USER_ID` になります。
-
-## 📦 導入方法
-
-### 必要要件
-- Node.js (v18以上推奨)
-- Antigravity (デバッグポート 9222 で起動していること)
-
-### インストール手順
-
-1. リポジトリをクローンします。
-   ```bash
-   git clone https://github.com/harunamitrader/antigravity-discord-bot.git
-   cd antigravity-discord-bot
-   ```
-
-2. 依存パッケージをインストールします。
+1. レポジトリをクローンし、依存関係をインストールします。
    ```bash
    npm install
    ```
-
-3. 環境変数を設定します。
-   リポジトリに含まれる `.env.example` をコピーして `.env` という名前で保存し、中身を書き換えてください。
-   
-   **Windows (PowerShell):**
-   ```powershell
-   cp .env.example .env
-   ```
-   **Mac/Linux:**
-   ```bash
-   cp .env.example .env
+2. `.env` ファイルを設定します（Discordボットを使う場合のみ必須）。
+   ```env
+   DISCORD_BOT_TOKEN="あなたのDiscord Botトークン"
+   DISCORD_ALLOWED_USER_ID="あなたのDiscordのユーザーID"
+   WATCH_DIR="C:/path/to/your/workspace" # (任意)
+   MCP_PORT=3000
+   MCP_HOST=0.0.0.0
    ```
 
-   その後、`.env` ファイルを開き、トークンなどを入力します。
+## 🎮 起動方法
 
-### 起動方法
+Antigravity を起動する際は必ず **Remote Debugging** を有効にしてください。
+ショートカットの「リンク先」の末尾に `--remote-debugging-port=9222` を追加した上で起動が必要です。
 
-1. **Antigravityをデバッグモードで起動**
-   - Antigravityのショートカットをコピーして作成します。
-   - ショートカットを右クリックし、**「プロパティ」** を開きます。
-   - **「リンク先」** の末尾に半角スペースを入れて `--remote-debugging-port=9222` を追加します。
-     - 例: `"C:\...\Antigravity.exe" --remote-debugging-port=9222`
-   - 「OK」を押して保存し、そのショートカットからアプリを起動します。
+**🔹 シナリオ A: MCP サーバー（OpenClaw Agent連携）のみを使う**
+```bash
+npm run mcp
+```
 
-2. **ボットを起動**
-   ```bash
-   node discord_bot.js
-   ```
+**🔹 シナリオ B: Discord Bot を使う**
+```bash
+npm run start
+```
 
-## 📖 コマンド一覧
+*(バックエンドである `cdp_service.js` が、動作中のAntigravityへ自動接続して処理を実行します)*
 
-| コマンド | 説明 |
-|---|---|
-| `/help` | コマンド一覧を表示 |
-| `/status` | モデルとモードの状態を表示 |
-| `/model` | 利用可能なモデル一覧を表示 |
-| `/model <番号>` | 指定したモデルに切り替える |
-| `/mode` | 現在のモードを表示 |
-| `/mode <planning/fast>` | モードを切り替える |
-| `/title` | チャットタイトルを表示 |
-| `/newchat` | 新しいチャットを開始 |
-| `/stop` | 生成を停止 |
-| `/screenshot` | スクリーンショットを取得 |
-
-## 🛠️ 技術仕様
-
-詳細な仕様については [SPECIFICATION.md](SPECIFICATION.md) を参照してください。
-
-## 📜 ライセンス
-
-MIT License
+## ⚠️ セキュリティに関する注意
+ローカル内で動いている強力なAI（ファイル操作やコマンド実行権限を持つ）を遠隔から操作するツールです。
+MCPサーバーは `.env` ファイルで `MCP_HOST=127.0.0.1` に設定することで、意図しないLANからのアクセスを防ぐことができます。
+また、Discord機能を使う場合は、`.env` で特定のユーザーIDを必ず指定し、第三者に悪用されないように保護してください。
