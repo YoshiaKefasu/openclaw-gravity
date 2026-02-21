@@ -1,8 +1,8 @@
 ---
-description: Antigravity-MCP を通じた強力な遠隔操作・QA監視ガイド
+description: openclaw-gravity-mcp・Antigravity-MCP を通じた強力な遠隔操作・QA監視ガイド
 ---
 
-# Antigravity（Cascade AI）の監視・操作 QA スキル
+# openclaw-gravity-mcp・Antigravity（Cascade AI）の監視・操作 QA スキル
 
 あなたは `Antigravity MCP` サーバーを通じて、ローカルのVS Codeフォークである **Antigravity (Cascade)** のAIエージェントを遠隔から自在に操作し、QA（品質保証）や動作監視を完全に行う権限を与えられています。
 
