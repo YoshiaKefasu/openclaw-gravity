@@ -203,9 +203,36 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 				const text = args.text
 				const attachments = args.attachments || []
 				if (!text) throw new Error("text argument is required")
-				const res = await cdpService.injectMessage(text, attachments)
+				const injectRes = await cdpService.injectMessage(text, attachments)
+				if (!injectRes || !injectRes.ok) {
+					return {
+						content: [
+							{
+								type: "text",
+								text: JSON.stringify(injectRes || { error: "Failed to inject message" }),
+							},
+						],
+					}
+				}
+
+				// Wait for Antigravity to finish generating the response
+				const completionRes = await cdpService.waitForCompletion(120000) // wait up to 2 mins
+
+				// If approval is required, return that status immediately so the agent can react
+				if (completionRes.status === "approval_required") {
+					return { content: [{ type: "text", text: JSON.stringify(completionRes) }] }
+				}
+
+				// Otherwise, fetch the final response text
+				const finalRes = await cdpService.getLastResponse()
 				return {
-					content: [{ type: "text", text: JSON.stringify(res) }],
+					content: [
+						{
+							type: "text",
+							text:
+								finalRes && finalRes.text ? finalRes.text : JSON.stringify(completionRes),
+						},
+					],
 				}
 			}
 			case "ag_screenshot": {

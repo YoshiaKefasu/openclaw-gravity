@@ -529,8 +529,12 @@ export class CDPService {
                     return document;
                 }
                 const doc = getTargetDoc();
-                const candidates = Array.from(doc.querySelectorAll('[data-message-role="assistant"], .prose, .group.relative.flex.gap-3'));
-                if (candidates.length === 0) return null;
+                const candidates = Array.from(doc.querySelectorAll('[data-message-role="assistant"], .prose, .group.relative.flex.gap-3, .leading-relaxed, .animate-markdown, .custom-html-style'));
+                if (candidates.length === 0) {
+                    const fallback = Array.from(doc.querySelectorAll('div > p, div > span')).filter(el => el.innerText && el.innerText.length > 10);
+                    if (fallback.length === 0) return null;
+                    return { text: fallback[fallback.length - 1].innerText, images: [] };
+                }
                 const lastMsg = candidates[candidates.length - 1];
                 return { text: lastMsg.innerText, images: Array.from(lastMsg.querySelectorAll('img')).map(img => img.src) };
             })()`
@@ -743,6 +747,13 @@ export class CDPService {
             for (let i = 0; i < iframes.length; i++) {
                 try { if (iframes[i].contentDocument) docs.push(iframes[i].contentDocument); } catch(e) {}
             }
+            
+            // Primary strategy: Grab the actual window title which contains the context (e.g. "openclaw-gravity - Antigravity - mcporter.json")
+            if (document.title && document.title.length > 2) {
+                return document.title;
+            }
+
+            // Fallback strategy: Old sidebar title
             for (const doc of docs) {
                 const els = doc.querySelectorAll('p.text-ide-sidebar-title-color');
                 for (const el of els) {

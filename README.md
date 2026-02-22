@@ -12,8 +12,10 @@ Antigravity REPL / AI エージェント（Cascade）を外部から遠隔操作
 LAN内で `OpenClawAgent` などの MCP クライアントから直接 Antigravity を操作・監視します。
 - URL: `http://localhost:3000/sse` (ポートは `.env` の `MCP_PORT` で変更可能)
 - サポートするツール:
-  - **メッセージ・ファイル送信**: `ag_send_message` (テキストに加え、画像や軽量ファイルを `attachments` として直接注入可能)
-  - **状態監視**: `ag_get_status` (モデル状態), `ag_get_last_response` (直近の応答内容)
+  - **🗣️ メッセージ・ファイル送信 (`ag_send_message`)**: 
+    - テキストに加え、画像や軽量ファイルを `attachments` として直接注入可能。
+    - **【重要】同期通信（Synchronous Chat）対応**: コマンド実行後、Antigravity（Cascade）が返答を生成し終わるまで待機し、生成されたテキストを**ツールの返り値として直接**エージェントに返します（重力通信の真の開通）。
+  - **状態監視**: `ag_get_status` (モデル状態・現在のワークスペース名), `ag_get_last_response` (直近の応答内容を手動取得)
   - **承認の自動化**: `ag_check_approval_required`, `ag_click_approval` (コマンド実行やファイル変更等の確認ダイアログの検知とクリック)
   - **制御**: `ag_switch_model`, `ag_switch_mode`, `ag_new_chat`, `ag_stop_generation`
   - **視覚確認**: `ag_screenshot` (AntigravityのUI全体をキャプチャ)
